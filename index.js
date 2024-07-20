@@ -1,5 +1,5 @@
 const express = require('express');
-const user = require("express/lib/view");
+// const user = require("express/lib/view");
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
