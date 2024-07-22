@@ -1,36 +1,32 @@
 const express = require('express');
-// const user = require("express/lib/view");
+const {read,write}=require('./fs.service');
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-let users = [
-    {id:0,name: 'vasya', age: 31, status: false},
-    {id:1,name: 'petya', age: 30, status: true},
-    {id:2,name: 'kolya', age: 29, status: true},
-    {id:3,name: 'olya', age: 28, status: false},
-    {id:4,name: 'max', age: 30, status: true},
-    {id:5,name: 'anya', age: 31, status: false},
-    {id:6,name: 'oleg', age: 28, status: false},
-    {id:7,name: 'andrey', age: 29, status: true},
-    {id:8,name: 'masha', age: 30, status: true},
-    {id:9,name: 'olya', age: 31, status: false},
-    {id:10,name: 'max', age: 31, status: true}
-];
 
-app.get('/users', (req, res) => {
+app.get('/users', async (req, res) => {
    try {
+       const users=await read()
     res.json(users);
 
    }catch(e) {
-       res.status(400).json(e.message);
+       res.status(500).json(e.message);
    }
 })
-app.post('/users', (req, res) => {
+app.post('/users', async (req, res) => {
    try {
        const {name, age, status} = req.body;
+
+       if (!name || name .length <3) {
+           return res.status(400).json("Name is required and/or more than 3");
+       }
+
+
+       const users = await read()
+
        const index=users.findIndex((user)=>user.name === name);
-       if (index !==1) {    //означає, що юзер знайшовся
+       if (index !==-1) {    //означає, що юзер знайшовся
            return res.status(409).json("User with this name already exists");
        }
        const newUser = {
@@ -40,27 +36,34 @@ app.post('/users', (req, res) => {
            status
        };
        users.push(newUser);
+       await write(users);
        res.status(201).json(newUser);
    }catch(e) {
-       res.status(400).json(e.message);
+       res.status(500).json(e.message);
    }
 
 })
-app.get('/users/:userId', (req, res) => {
+app.get('/users/:userId', async (req, res) => {
    try {
+       const userId=Number(req.params.userId);
+       const users = await read()
+
        const user=users.find(user=>user.id===+req.params.userId)
        if (!user) {
            return res.status(404).json({message: 'user not found'});
        }
        res.json(user)
    }catch(e) {
-       res.status(400).json(e.message);
+       res.status(500).json(e.message);
    }
 })
-app.put('/users/:userId', (req, res) => {
+app.put('/users/:userId', async (req, res) => {
     try {
-        const userId=Number(req.params.userId);
+        const userId=Number(req.params.userId)
         const {name, age, status} = req.body;
+
+        const users = await read()
+
        const user=users.find(user=>user.id === userId);
        if (!user) {
            return res.status(404).json({message: 'user not found'});
@@ -75,20 +78,26 @@ app.put('/users/:userId', (req, res) => {
            user.status = status;
        }
 
+       await write(users);
        res.status(201).json(user)
 
     }catch(e) {
-        res.status(400).json(e.message);
+        res.status(500).json(e.message);
     }
 })
-app.delete('/users/:userId', (req, res) => {
+app.delete('/users/:userId', async (req, res) => {
     try {
         const userId=Number(req.params.userId)
+
+        const users = await read()
+
         const index=users.findIndex((user)=>user.id === userId);
         if (index === -1) { // якщо не знайшли
             return res.status(404).json({message: 'user not found'});
         }
         users.splice(index, 1);  //якщо все ок
+        await write(users)
+
         res.sendStatus(204)
 
     }catch(e) {
