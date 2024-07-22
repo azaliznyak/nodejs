@@ -45,7 +45,7 @@ app.post('/users', async (req, res) => {
 })
 app.get('/users/:userId', async (req, res) => {
    try {
-       const userId=Number(req.params.userId);
+       const userId=Number(req.params.userId)
        const users = await read()
 
        const user=users.find(user=>user.id===+req.params.userId)
