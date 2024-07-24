@@ -1,20 +1,20 @@
-const express = require('express');
-const {read,write}=require('./fs.service');
+import express, {Request, Response} from 'express';
+import {fsService} from './fs.service';
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 
-app.get('/users', async (req, res) => {
+app.get('/users', async (req:Request, res:Response) => {
    try {
-       const users=await read()
+       const users=await fsService.read()
     res.json(users);
 
    }catch(e) {
        res.status(500).json(e.message);
    }
 })
-app.post('/users', async (req, res) => {
+app.post('/users', async (req:Request, res:Response) => {
    try {
        const {name, age, status} = req.body;
 
@@ -23,7 +23,7 @@ app.post('/users', async (req, res) => {
        }
 
 
-       const users = await read()
+       const users = await fsService.read()
 
        const index=users.findIndex((user)=>user.name === name);
        if (index !==-1) {    //означає, що юзер знайшовся
@@ -36,19 +36,19 @@ app.post('/users', async (req, res) => {
            status
        };
        users.push(newUser);
-       await write(users);
+       await fsService.write(users);
        res.status(201).json(newUser);
    }catch(e) {
        res.status(500).json(e.message);
    }
 
 })
-app.get('/users/:userId', async (req, res) => {
+app.get('/users/:userId', async (req:Request, res:Response) => {
    try {
        const userId=Number(req.params.userId)
-       const users = await read()
+       const users = await fsService.read()
 
-       const user=users.find(user=>user.id===+req.params.userId)
+       const user=users.find(user=>user.id===userId)
        if (!user) {
            return res.status(404).json({message: 'user not found'});
        }
@@ -57,12 +57,12 @@ app.get('/users/:userId', async (req, res) => {
        res.status(500).json(e.message);
    }
 })
-app.put('/users/:userId', async (req, res) => {
+app.put('/users/:userId', async (req:Request, res:Response) => {
     try {
         const userId=Number(req.params.userId)
         const {name, age, status} = req.body;
 
-        const users = await read()
+        const users = await fsService.read()
 
        const user=users.find(user=>user.id === userId);
        if (!user) {
@@ -78,25 +78,25 @@ app.put('/users/:userId', async (req, res) => {
            user.status = status;
        }
 
-       await write(users);
+       await fsService.write(users);
        res.status(201).json(user)
 
     }catch(e) {
         res.status(500).json(e.message);
     }
 })
-app.delete('/users/:userId', async (req, res) => {
+app.delete('/users/:userId', async (req:Request, res:Response) => {
     try {
         const userId=Number(req.params.userId)
 
-        const users = await read()
+        const users = await fsService.read()
 
         const index=users.findIndex((user)=>user.id === userId);
         if (index === -1) { // якщо не знайшли
             return res.status(404).json({message: 'user not found'});
         }
         users.splice(index, 1);  //якщо все ок
-        await write(users)
+        await fsService.write(users)
 
         res.sendStatus(204)
 
