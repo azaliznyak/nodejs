@@ -1,47 +1,14 @@
-import express, { Request, Response } from "express";
+import express, { NextFunction, Request, Response } from "express";
 
+import { ApiError } from "./errors/api-error";
 import { fsService } from "./fs.service";
+import { userRouter } from "./routes/user.router";
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use("/users", userRouter);
 
-app.get("/users", async (req: Request, res: Response) => {
-  try {
-    const users = await fsService.read();
-    res.json(users);
-  } catch (e) {
-    res.status(500).json(e.message);
-  }
-});
-app.post("/users", async (req: Request, res: Response) => {
-  try {
-    const { name, age, status } = req.body;
-
-    if (!name || name.length < 3) {
-      return res.status(400).json("Name is required and/or more than 3");
-    }
-
-    const users = await fsService.read();
-
-    const index = users.findIndex((user) => user.name === name);
-    if (index !== -1) {
-      //означає, що юзер знайшовся
-      return res.status(409).json("User with this name already exists");
-    }
-    const newUser = {
-      id: users[users.length - 1].id + 1,
-      name,
-      age,
-      status,
-    };
-    users.push(newUser);
-    await fsService.write(users);
-    res.status(201).json(newUser);
-  } catch (e) {
-    res.status(500).json(e.message);
-  }
-});
 app.get("/users/:userId", async (req: Request, res: Response) => {
   try {
     const userId = Number(req.params.userId);
@@ -59,7 +26,7 @@ app.get("/users/:userId", async (req: Request, res: Response) => {
 app.put("/users/:userId", async (req: Request, res: Response) => {
   try {
     const userId = Number(req.params.userId);
-    const { name, age, status } = req.body;
+    const { name, email, password } = req.body;
 
     const users = await fsService.read();
 
@@ -67,15 +34,9 @@ app.put("/users/:userId", async (req: Request, res: Response) => {
     if (!user) {
       return res.status(404).json({ message: "user not found" });
     }
-    if (name) {
-      user.name = name;
-    }
-    if (age) {
-      user.age = age;
-    }
-    if (status) {
-      user.status = status;
-    }
+    if (name) user.name = name;
+    if (email) user.email = email;
+    if (password) user.password = password;
 
     await fsService.write(users);
     res.status(201).json(user);
@@ -101,6 +62,18 @@ app.delete("/users/:userId", async (req: Request, res: Response) => {
   } catch (e) {
     res.status(400).json(e.message);
   }
+});
+
+app.use(
+  "*",
+  (err: ApiError, req: Request, res: Response, next: NextFunction) => {
+    res.status(err.status || 500).json(err.message);
+  },
+);
+
+process.on("uncaughtException", (e) => {
+  console.error("uncaughtException", e.message, e.stack);
+  process.exit(1);
 });
 
 app.listen(3000, () => {
